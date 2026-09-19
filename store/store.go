@@ -234,6 +234,31 @@ func (s *Store) Del(key string) int {
 	return 1
 }
 
+// TTL returns the remaining time to live of a key in seconds:
+//   -2 if the key does not exist or has already expired
+//   -1 if the key exists but has no associated expire
+//   >= 0 remaining TTL in seconds
+func (s *Store) TTL(key string) int64 {
+	sh := s.getShard(key)
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
+
+	n, ok := sh.data[key]
+	if !ok {
+		return -2
+	}
+	now := time.Now().UnixNano()
+	if n.expired(now) {
+		sh.evict(n)
+		return -2
+	}
+	if n.expiresAt == 0 {
+		return -1
+	}
+	return (n.expiresAt - now) / int64(time.Second)
+}
+
+
 // Sweep performs one active-expiration pass over every shard, deleting
 // any key whose TTL has passed. It is meant to be called periodically
 // from a background goroutine (see main.go) so that expired keys are

@@ -72,6 +72,24 @@ func TestTTLZeroMeansNoExpiry(t *testing.T) {
 	}
 }
 
+func TestStoreTTL(t *testing.T) {
+	s := New()
+	if ttl := s.TTL("missing"); ttl != -2 {
+		t.Fatalf("TTL(missing) = %d; want -2", ttl)
+	}
+
+	s.Set("noexp", "val", 0)
+	if ttl := s.TTL("noexp"); ttl != -1 {
+		t.Fatalf("TTL(noexp) = %d; want -1", ttl)
+	}
+
+	s.Set("exp", "val", 5*time.Second)
+	if ttl := s.TTL("exp"); ttl < 1 || ttl > 5 {
+		t.Fatalf("TTL(exp) = %d; want between 1 and 5", ttl)
+	}
+}
+
+
 func TestSweepReclaimsExpiredKeys(t *testing.T) {
 	s := New()
 	s.Set("a", "1", 10*time.Millisecond)

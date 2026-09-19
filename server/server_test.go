@@ -143,6 +143,32 @@ func TestServerSetWithExpiry(t *testing.T) {
 	}
 }
 
+func TestServerTTL(t *testing.T) {
+	addr := startTestServer(t)
+
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer conn.Close()
+	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+
+	if got := cmd(t, rw, "*2\r\n$3\r\nTTL\r\n$1\r\nk\r\n"); got != ":-2\r\n" {
+		t.Fatalf("TTL missing key = %q; want :-2", got)
+	}
+
+	_ = cmd(t, rw, "*3\r\n$3\r\nSET\r\n$1\r\nk\r\n$1\r\nv\r\n")
+	if got := cmd(t, rw, "*2\r\n$3\r\nTTL\r\n$1\r\nk\r\n"); got != ":-1\r\n" {
+		t.Fatalf("TTL key with no expiry = %q; want :-1", got)
+	}
+
+	_ = cmd(t, rw, "*5\r\n$3\r\nSET\r\n$1\r\nk\r\n$1\r\nv\r\n$2\r\nEX\r\n$2\r\n10\r\n")
+	if got := cmd(t, rw, "*2\r\n$3\r\nTTL\r\n$1\r\nk\r\n"); got != ":10\r\n" && got != ":9\r\n" {
+		t.Fatalf("TTL key with expiry = %q; want :10 or :9", got)
+	}
+}
+
+
 func TestServerErrorReplies(t *testing.T) {
 	addr := startTestServer(t)
 

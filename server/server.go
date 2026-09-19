@@ -184,6 +184,8 @@ func (s *Server) dispatch(w *resp.Writer, args []string) {
 		s.handleGet(w, args)
 	case "DEL":
 		s.handleDel(w, args)
+	case "TTL":
+		s.handleTTL(w, args)
 	default:
 		_ = w.WriteError("ERR unknown command '" + args[0] + "'")
 	}
@@ -250,3 +252,12 @@ func (s *Server) handleDel(w *resp.Writer, args []string) {
 	}
 	_ = w.WriteInteger(deleted)
 }
+
+func (s *Server) handleTTL(w *resp.Writer, args []string) {
+	if len(args) != 2 {
+		_ = w.WriteError("ERR wrong number of arguments for 'ttl' command")
+		return
+	}
+	_ = w.WriteInteger(s.db.TTL(args[1]))
+}
+
